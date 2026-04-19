@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>全国天气地图</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f0f8ff 0%, #e0ecf5 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .header {
+            background: white;
+            padding: 16px 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .header h1 { font-size: 22px; font-weight: 600; color: #2c3e50; }
+        .header .subtitle { font-size: 13px; color: #7f8c8d; margin-top: 2px; }
+        .header .source { font-size: 11px; color: #bbb; text-align: right; }
+        .date-bar {
+            background: white;
+            padding: 12px 40px;
+            border-bottom: 1px solid #eee;
+            display: flex; align-items: center; gap: 12px;
+            overflow-x: auto; white-space: nowrap;
+        }
+        .date-bar-label { font-size: 13px; color: #888; flex-shrink: 0; }
+        .date-btn {
+            flex-shrink: 0; padding: 7px 14px;
+            border: 2px solid #e0e8f0; background: white;
+            border-radius: 8px; cursor: pointer;
+            font-size: 12px; color: #555; transition: all 0.15s;
+            display: flex; flex-direction: column; align-items: center;
+            gap: 1px; min-width: 56px;
+        }
+        .date-btn:hover { border-color: #3498db; color: #3498db; background: #f0f7ff; }
+        .date-btn.active { border-color: #3498db; background: linear-gradient(135deg, #3498db, #2980b9); color: white; }
+        .date-btn .day-name { font-size: 10px; opacity: 0.7; }
+        .date-btn .day-num { font-size: 15px; font-weight: 700; }
+        .date-btn .month { font-size: 10px; opacity: 0.7; }
+        .main-content { display: flex; height: calc(100vh - 135px); }
+        .map-container { flex: 1; padding: 12px; }
+        #china-map { width: 100%; height: 100%; border-radius: 14px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+        .sidebar { width: 280px; background: white; padding: 16px; box-shadow: -2px 0 10px rgba(0,0,0,0.04); overflow-y: auto; }
+        .sidebar h2 { font-size: 14px; margin-bottom: 10px; color: #2c3e50; display: flex; align-items: center; gap: 6px; }
+        .today-badge { font-size: 10px; background: #e8f4fd; color: #3498db; padding: 2px 6px; border-radius: 4px; }
+        .city-list { display: flex; flex-direction: column; gap: 7px; }
+        .city-item { padding: 10px 12px; background: #f8f9fa; border-radius: 8px; cursor: pointer; transition: all 0.2s; border: 2px solid transparent; }
+        .city-item:hover { background: #fff; border-color: #3498db; box-shadow: 0 3px 10px rgba(52,152,219,0.12); transform: translateX(-2px); }
+        .city-item .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+        .city-name { font-size: 13px; font-weight: 600; color: #2c3e50; }
+        .temp-range { font-size: 18px; font-weight: 700; }
+        .city-item .bottom { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #888; }
+        .weather-icon { font-size: 18px; }
+        .city-item .condition { font-size: 11px; color: #777; }
+        .legend { margin-top: 12px; padding-top: 12px; border-top: 1px solid #eee; }
+        .legend h3 { font-size: 11px; color: #aaa; margin-bottom: 6px; }
+        .legend-items { display: flex; flex-wrap: wrap; gap: 6px; }
+        .legend-item { display: flex; align-items: center; gap: 3px; font-size: 10px; color: #888; }
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .loading-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.97);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 2000;
+        }
+        .loading-overlay .spinner {
+            width: 40px; height: 40px; border: 3px solid #e0e8f0; border-top-color: #3498db;
+            border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-overlay .title { font-size: 18px; font-weight: 600; color: #2c3e50; margin-bottom: 8px; }
+        .loading-overlay .sub { font-size: 13px; color: #aaa; margin-bottom: 20px; }
+        .loading-overlay .progress-wrap { width: 240px; }
+        .loading-overlay .progress-text { font-size: 12px; color: #888; text-align: center; margin-top: 8px; }
+        .progress-bar { height: 4px; background: #e8eef5; border-radius: 2px; overflow: hidden; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, #3498db, #2ecc71); border-radius: 2px; transition: width 0.3s; }
+        .hidden { display: none !important; }
+        .error-msg { background: #fff3f3; color: #c00; padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; font-size: 12px; }
+        .empty-tip { text-align: center; color: #aaa; padding: 30px 0; font-size: 12px; }
+        .info-bar { font-size: 11px; color: #bbb; text-align: center; padding: 4px 0; }
+        .weather-sunny { background: #fcd34d; }
+        .weather-cloudy { background: #94a3b8; }
+        .weather-rainy { background: #60a5fa; }
+        .weather-default { background: #9ca3af; }
+        .weather-snow { background: #a8d8ff; }
+    </style>
+</head>
+<body>
+
+<div class="loading-overlay" id="loading">
+    <div class="spinner"></div>
+    <div class="title" id="loadingTitle">正在获取天气数据</div>
+    <div class="sub" id="loadingSub">服务器加载中，请稍候…</div>
+    <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+        <div class="progress-text" id="progressText">连接服务器…</div>
+    </div>
+</div>
+
+<div class="header">
+    <div>
+        <h1>全国天气地图</h1>
+        <div class="subtitle" id="subtitleText">实时天气 · 点击地图上的点可查看详情</div>
+    </div>
+    <div class="source">数据来源：Open-Meteo</div>
+</div>
+
+<div class="date-bar" id="dateBar">
+    <span class="date-bar-label">📅 预报日期：</span>
+</div>
+
+<div class="main-content">
+    <div class="map-container">
+        <div id="china-map"></div>
+    </div>
+    <div class="sidebar">
+        <h2>城市预报 <span class="today-badge" id="todayBadge">今日</span></h2>
+        <div id="errorMsg"></div>
+        <div class="city-list" id="cityList">
+            <div class="empty-tip">加载中…</div>
+        </div>
+        <div class="legend">
+            <h3>天气图例</h3>
+            <div class="legend-items">
+                <div class="legend-item"><div class="legend-dot weather-sunny"></div><span>晴</span></div>
+                <div class="legend-item"><div class="legend-dot weather-cloudy"></div><span>多云/阴</span></div>
+                <div class="legend-item"><div class="legend-dot weather-rainy"></div><span>雨</span></div>
+                <div class="legend-item"><div class="legend-dot weather-snow"></div><span>雪</span></div>
+            </div>
+        </div>
+        <div class="info-bar">点击城市卡片可定位到地图对应位置</div>
+    </div>
+</div>
+
+<script>
+// ============================================================
+// 全局状态
+// ============================================================
+var chart = null;
+var allData = {};    // { cityName: serverData }
+var selectedDay = 0; // 0=今天, 1=明天, ...
+var forecastDays = [];
+
+// ============================================================
+// 工具函数
+// ============================================================
+function getWeatherColor(c) {
+    if (!c) return '#9ca3af';
+    if (c.includes('晴')) return '#fcd34d';
+    if (c.includes('多云') || c.includes('阴')) return '#94a3b8';
+    if (c.includes('雨') || c.includes('雷')) return '#60a5fa';
+    if (c.includes('雪') || c.includes('冰')) return '#a8d8ff';
+    return '#9ca3af';
+}
+
+function getWeatherIcon(c) {
+    if (!c) return '☁️';
+    if (c.includes('晴')) return '☀️';
+    if (c.includes('多云')) return '⛅';
+    if (c.includes('阴')) return '☁️';
+    if (c.includes('雨')) return '🌧️';
+    if (c.includes('雪')) return '❄️';
+    if (c.includes('雾') || c.includes('霾')) return '🌫️';
+    if (c.includes('雷')) return '⛈️';
+    return '☁️';
+}
+
+function weatherCodeToText(code) {
+    var m = {
+        0:'晴',1:'晴间多云',2:'多云',3:'阴',
+        45:'雾',48:'雾凇',
+        51:'小毛毛雨',53:'中毛毛雨',55:'大毛毛雨',
+        56:'冻毛毛雨',57:'重冻毛毛雨',
+        61:'小雨',63:'中雨',65:'大雨',
+        66:'冻雨',67:'重冻雨',
+        71:'小雪',73:'中雪',75:'大雪',
+        77:'雪粒',
+        80:'小阵雨',81:'中阵雨',82:'强阵雨',
+        85:'小阵雪',86:'大阵雪',
+        95:'雷暴',96:'雷暴+小冰雹',99:'雷暴+大冰雹'
+    };
+    return m[code] !== undefined ? m[code] : '未知';
+}
+
+// ============================================================
+// 日期选择栏
+// ============================================================
+function initDateBar() {
+    var bar = document.getElementById('dateBar');
+    forecastDays = [];
+    var now = new Date();
+    for (var i = 0; i < 16; i++) {
+        var d = new Date(now);
+        d.setDate(now.getDate() + i);
+        forecastDays.push(d);
+    }
+    for (var j = 0; j < forecastDays.length; j++) {
+        var btn = document.createElement('button');
+        btn.className = 'date-btn' + (j === 0 ? ' active' : '');
+        btn.dataset.day = j;
+        var dayNames = ['周日','周一','周二','周三','周四','周五','周六'];
+        var dayName = j === 0 ? '今天' : (j === 1 ? '明天' : dayNames[forecastDays[j].getDay()]);
+        btn.innerHTML = '<span class="day-name">' + dayName + '</span>' +
+            '<span class="day-num">' + forecastDays[j].getDate() + '</span>' +
+            '<span class="month">' + (forecastDays[j].getMonth()+1) + '月</span>';
+        btn.onclick = (function(idx) { return function() { selectDay(idx); }; })(j);
+        bar.appendChild(btn);
+    }
+}
+
+function selectDay(idx) {
+    selectedDay = idx;
+    document.querySelectorAll('.date-btn').forEach(function(b, i) {
+        b.classList.toggle('active', i === idx);
+    });
+    var badge = document.getElementById('todayBadge');
+    badge.textContent = idx === 0 ? '今日' : (idx === 1 ? '明日' : (idx + 1) + '天后');
+    updateDisplay();
+}
+
+// ============================================================
+// 地图
+// ============================================================
+async function initMap() {
+    chart = echarts.init(document.getElementById('china-map'));
+
+    await Promise.all([
+        fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
+            .then(function(r) { return r.json(); })
+            .then(function(j) { echarts.registerMap('china', j); })
+            .catch(function(e) { console.error('中国地图加载失败:', e); }),
+        fetch('https://geo.datav.aliyun.com/areas_v3/bound/world.json')
+            .then(function(r) { return r.json(); })
+            .then(function(j) { echarts.registerMap('world', j); })
+            .catch(function() {})
+    ]);
+
+    chart.setOption({
+        geo: [
+            {
+                id: 'bg', map: 'world', roam: false, z: 1, silent: true,
+                itemStyle: { areaColor: '#bfd9ec', borderColor: '#8bb8d4', borderWidth: 0.5 }
+            },
+            {
+                id: 'china', map: 'china', roam: true, z: 2, zoom: 1.3, center: [105, 36],
+                label: { show: false },
+                itemStyle: {
+                    areaColor: { type: 'linear', x: 0, y: 0, x2: 0, y2: 1,
+                        colorStops: [{ offset: 0, color: '#d6ecf8' }, { offset: 1, color: '#9bcce6' }]
+                    },
+                    borderColor: '#6aaed6', borderWidth: 1.5,
+                    shadowColor: 'rgba(30,90,160,0.2)', shadowBlur: 10, shadowOffsetY: 4
+                },
+                emphasis: {
+                    itemStyle: { areaColor: '#b8e0f4', shadowColor: 'rgba(30,100,180,0.25)', shadowBlur: 14 },
+                    label: { show: false }
+                },
+                select: { disabled: true }
+            }
+        ],
+        series: [{
+            type: 'effectScatter', coordinateSystem: 'geo', geoIndex: 1,
+            data: [], symbolSize: 14, showEffectOn: 'render',
+            rippleEffect: { brushType: 'stroke', scale: 3, period: 3 },
+            label: { show: false },
+            itemStyle: { color: '#3498db', shadowBlur: 10, shadowColor: 'rgba(52,152,219,0.4)' },
+            emphasis: { scale: 1.8 }
+        }],
+        tooltip: {
+            trigger: 'item',
+            backgroundColor: 'rgba(255,255,255,0.97)', borderColor: '#cce4f7',
+            borderWidth: 1, borderRadius: 12, padding: [14, 18],
+            textStyle: { color: '#333', fontSize: 13 },
+            formatter: function(params) {
+                if (!params.data || params.data.tempMax === undefined) return '';
+                var d = params.data;
+                return '<div style="font-weight:600;font-size:15px;margin-bottom:6px">' + d.name + '</div>' +
+                    '<div style="display:flex;gap:12px;align-items:baseline">' +
+                    '<span style="font-size:24px;font-weight:700;color:#e74c3c">' + d.tempMax + '°</span>' +
+                    '<span style="color:#888">/</span>' +
+                    '<span style="font-size:18px;color:#3498db">' + d.tempMin + '°C</span></div>' +
+                    '<div style="margin-top:4px;font-size:12px;color:#777">' +
+                    d.condition + ' · 降水' + d.precip + 'mm · ' + d.wind + 'm/s</div>';
+            }
+        }
+    });
+
+    chart.dispatchAction({ type: 'geoRoam', zoom: 1.2, center: [105, 36] });
+    window.addEventListener('resize', function() { chart.resize(); });
+}
+
+// ============================================================
+// 从服务器获取天气数据
+// ============================================================
+async function loadWeatherFromServer() {
+    document.getElementById('loading').classList.remove('hidden');
+    document.getElementById('progressFill').style.width = '0%';
+    document.getElementById('progressText').textContent = '正在连接服务器…';
+
+    // 尝试从本地服务器获取
+    var sources = [
+        { url: '/api/weather', desc: '本地服务器' },
+        { url: '/weather.json', desc: '本地服务器' }
+    ];
+
+    var data = null;
+    var sourceUsed = null;
+
+    for (var i = 0; i < sources.length; i++) {
+        try {
+            document.getElementById('progressText').textContent = '尝试 ' + sources[i].desc + '…';
+            var resp = await fetch(sources[i].url);
+            if (resp.ok) {
+                data = await resp.json();
+                sourceUsed = sources[i].desc;
+                break;
+            }
+        } catch (e) {
+            console.warn(sources[i].url, '不可用:', e);
+        }
+    }
+
+    if (data) {
+        allData = data;
+        document.getElementById('progressFill').style.width = '100%';
+        document.getElementById('progressText').textContent = '数据加载完成！';
+        var count = Object.keys(data).length;
+        document.getElementById('subtitleText').textContent =
+            '已加载 ' + count + ' 个城市 · 未来16天预报 · ' + sourceUsed;
+        document.getElementById('loading').classList.add('hidden');
+        updateDisplay();
+    } else {
+        // 服务器不可用，提示用户
+        document.getElementById('loadingTitle').textContent = '无法连接服务器';
+        document.getElementById('loadingSub').innerHTML =
+            '请确保已启动后端服务：<br><code style="background:#f0f0f0;padding:4px 8px;border-radius:4px">cd weather-map-app && node server.js</code><br><br>' +
+            '<span style="font-size:11px;color:#aaa">或双击 index.html 直接在浏览器打开（速度较慢）</span>';
+        document.getElementById('progressText').textContent = '服务器未运行';
+        document.getElementById('progressFill').style.width = '0%';
+    }
+}
+
+// ============================================================
+// 展示层
+// ============================================================
+function updateDisplay() {
+    updateMap();
+    updateCityList();
+}
+
+function updateMap() {
+    if (!chart) return;
+    var points = [];
+    for (var name in allData) {
+        var city = allData[name];
+        var daily = city.daily;
+        if (!daily || !daily.time || !daily.time[selectedDay]) continue;
+        var code = daily.weather_code[selectedDay];
+        var tempMax = Math.round(daily.temperature_2m_max[selectedDay]);
+        var tempMin = Math.round(daily.temperature_2m_min[selectedDay]);
+        points.push({
+            name: name,
+            value: [city.longitude || city.lon, city.latitude || city.lat, Math.round((tempMax + tempMin) / 2)],
+            tempMax: tempMax,
+            tempMin: tempMin,
+            condition: weatherCodeToText(code),
+            precip: ((daily.precipitation_sum && daily.precipitation_sum[selectedDay]) || 0).toFixed(1),
+            wind: Math.round((daily.wind_speed_10m_max && daily.wind_speed_10m_max[selectedDay]) || 0)
+        });
+    }
+    chart.setOption({ series: [{ data: points }] });
+}
+
+function updateCityList() {
+    var container = document.getElementById('cityList');
+    var list = [];
+    for (var name in allData) {
+        var city = allData[name];
+        var daily = city.daily;
+        if (!daily || !daily.time || !daily.time[selectedDay]) continue;
+        var code = daily.weather_code[selectedDay];
+        var cond = weatherCodeToText(code);
+        var tempMax = Math.round(daily.temperature_2m_max[selectedDay]);
+        var tempMin = Math.round(daily.temperature_2m_min[selectedDay]);
+        var precip = ((daily.precipitation_sum && daily.precipitation_sum[selectedDay]) || 0).toFixed(1);
+        list.push({
+            name: name, lat: city.latitude || city.lat,
+            lon: city.longitude || city.lon,
+            tempMax: tempMax, tempMin: tempMin,
+            cond: cond, precip: precip,
+            color: getWeatherColor(cond)
+        });
+    }
+
+    if (!list.length) {
+        container.innerHTML = '<div class="empty-tip">暂无数据</div>';
+        return;
+    }
+
+    list.sort(function(a, b) { return b.tempMax - a.tempMax; });
+
+    container.innerHTML = list.map(function(city) {
+        return '<div class="city-item" onclick="focusCity(\'' + city.name + '\')">' +
+            '<div class="top">' +
+            '<span class="city-name">' + city.name + '</span>' +
+            '<span class="temp-range" style="color:' + city.color + '">' + city.tempMax + '° / ' + city.tempMin + '°</span>' +
+            '</div>' +
+            '<div class="bottom">' +
+            '<span class="weather-icon">' + getWeatherIcon(city.cond) + '</span>' +
+            '<span class="condition">' + city.cond + '</span>' +
+            '<span style="margin-left:auto">🌧️' + city.precip + 'mm</span>' +
+            '</div></div>';
+    }).join('');
+}
+
+function focusCity(name) {
+    if (!chart) return;
+    chart.dispatchAction({ type: 'showTip', seriesIndex: 0, name: name });
+    var city = allData[name];
+    if (city) {
+        chart.dispatchAction({
+            type: 'geoRoam',
+            zoom: 2.5,
+            center: [city.longitude || city.lon, city.latitude || city.lat]
+        });
+    }
+}
+
+// ============================================================
+// 启动
+// ============================================================
+window.onload = async function() {
+    initDateBar();
+    await initMap();
+    await loadWeatherFromServer();
+};
+</script>
+</body>
+</html>

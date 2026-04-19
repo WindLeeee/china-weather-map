@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>全国天气地图</title>
+    <title>鍏ㄥ浗澶╂皵鍦板浘</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -97,24 +97,24 @@
 
 <div class="loading-overlay" id="loading">
     <div class="spinner"></div>
-    <div class="title" id="loadingTitle">正在获取天气数据</div>
-    <div class="sub" id="loadingSub">服务器加载中，请稍候…</div>
+    <div class="title" id="loadingTitle">姝ｅ湪鑾峰彇澶╂皵鏁版嵁</div>
+    <div class="sub" id="loadingSub">鏈嶅姟鍣ㄥ姞杞戒腑锛岃绋嶅€欌€?/div>
     <div class="progress-wrap">
         <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-        <div class="progress-text" id="progressText">连接服务器…</div>
+        <div class="progress-text" id="progressText">杩炴帴鏈嶅姟鍣ㄢ€?/div>
     </div>
 </div>
 
 <div class="header">
     <div>
-        <h1>全国天气地图</h1>
-        <div class="subtitle" id="subtitleText">实时天气 · 点击地图上的点可查看详情</div>
+        <h1>鍏ㄥ浗澶╂皵鍦板浘</h1>
+        <div class="subtitle" id="subtitleText">瀹炴椂澶╂皵 路 鐐瑰嚮鍦板浘涓婄殑鐐瑰彲鏌ョ湅璇︽儏</div>
     </div>
-    <div class="source">数据来源：Open-Meteo</div>
+    <div class="source">鏁版嵁鏉ユ簮锛歄pen-Meteo</div>
 </div>
 
 <div class="date-bar" id="dateBar">
-    <span class="date-bar-label">📅 预报日期：</span>
+    <span class="date-bar-label">馃搮 棰勬姤鏃ユ湡锛?/span>
 </div>
 
 <div class="main-content">
@@ -122,77 +122,75 @@
         <div id="china-map"></div>
     </div>
     <div class="sidebar">
-        <h2>城市预报 <span class="today-badge" id="todayBadge">今日</span></h2>
+        <h2>鍩庡競棰勬姤 <span class="today-badge" id="todayBadge">浠婃棩</span></h2>
         <div id="errorMsg"></div>
         <div class="city-list" id="cityList">
-            <div class="empty-tip">加载中…</div>
+            <div class="empty-tip">鍔犺浇涓€?/div>
         </div>
         <div class="legend">
-            <h3>天气图例</h3>
+            <h3>澶╂皵鍥句緥</h3>
             <div class="legend-items">
-                <div class="legend-item"><div class="legend-dot weather-sunny"></div><span>晴</span></div>
-                <div class="legend-item"><div class="legend-dot weather-cloudy"></div><span>多云/阴</span></div>
-                <div class="legend-item"><div class="legend-dot weather-rainy"></div><span>雨</span></div>
-                <div class="legend-item"><div class="legend-dot weather-snow"></div><span>雪</span></div>
+                <div class="legend-item"><div class="legend-dot weather-sunny"></div><span>鏅?/span></div>
+                <div class="legend-item"><div class="legend-dot weather-cloudy"></div><span>澶氫簯/闃?/span></div>
+                <div class="legend-item"><div class="legend-dot weather-rainy"></div><span>闆?/span></div>
+                <div class="legend-item"><div class="legend-dot weather-snow"></div><span>闆?/span></div>
             </div>
         </div>
-        <div class="info-bar">点击城市卡片可定位到地图对应位置</div>
+        <div class="info-bar">鐐瑰嚮鍩庡競鍗＄墖鍙畾浣嶅埌鍦板浘瀵瑰簲浣嶇疆</div>
     </div>
 </div>
 
 <script>
 // ============================================================
-// 全局状态
-// ============================================================
+// 鍏ㄥ眬鐘舵€?// ============================================================
 var chart = null;
 var allData = {};    // { cityName: serverData }
-var selectedDay = 0; // 0=今天, 1=明天, ...
+var selectedDay = 0; // 0=浠婂ぉ, 1=鏄庡ぉ, ...
 var forecastDays = [];
 
 // ============================================================
-// 工具函数
+// 宸ュ叿鍑芥暟
 // ============================================================
 function getWeatherColor(c) {
     if (!c) return '#9ca3af';
-    if (c.includes('晴')) return '#fcd34d';
-    if (c.includes('多云') || c.includes('阴')) return '#94a3b8';
-    if (c.includes('雨') || c.includes('雷')) return '#60a5fa';
-    if (c.includes('雪') || c.includes('冰')) return '#a8d8ff';
+    if (c.includes('鏅?)) return '#fcd34d';
+    if (c.includes('澶氫簯') || c.includes('闃?)) return '#94a3b8';
+    if (c.includes('闆?) || c.includes('闆?)) return '#60a5fa';
+    if (c.includes('闆?) || c.includes('鍐?)) return '#a8d8ff';
     return '#9ca3af';
 }
 
 function getWeatherIcon(c) {
-    if (!c) return '☁️';
-    if (c.includes('晴')) return '☀️';
-    if (c.includes('多云')) return '⛅';
-    if (c.includes('阴')) return '☁️';
-    if (c.includes('雨')) return '🌧️';
-    if (c.includes('雪')) return '❄️';
-    if (c.includes('雾') || c.includes('霾')) return '🌫️';
-    if (c.includes('雷')) return '⛈️';
-    return '☁️';
+    if (!c) return '鈽侊笍';
+    if (c.includes('鏅?)) return '鈽€锔?;
+    if (c.includes('澶氫簯')) return '鉀?;
+    if (c.includes('闃?)) return '鈽侊笍';
+    if (c.includes('闆?)) return '馃導锔?;
+    if (c.includes('闆?)) return '鉂勶笍';
+    if (c.includes('闆?) || c.includes('闇?)) return '馃尗锔?;
+    if (c.includes('闆?)) return '鉀堬笍';
+    return '鈽侊笍';
 }
 
 function weatherCodeToText(code) {
     var m = {
-        0:'晴',1:'晴间多云',2:'多云',3:'阴',
-        45:'雾',48:'雾凇',
-        51:'小毛毛雨',53:'中毛毛雨',55:'大毛毛雨',
-        56:'冻毛毛雨',57:'重冻毛毛雨',
-        61:'小雨',63:'中雨',65:'大雨',
-        66:'冻雨',67:'重冻雨',
-        71:'小雪',73:'中雪',75:'大雪',
-        77:'雪粒',
-        80:'小阵雨',81:'中阵雨',82:'强阵雨',
-        85:'小阵雪',86:'大阵雪',
-        95:'雷暴',96:'雷暴+小冰雹',99:'雷暴+大冰雹'
+        0:'鏅?,1:'鏅撮棿澶氫簯',2:'澶氫簯',3:'闃?,
+        45:'闆?,48:'闆惧噰',
+        51:'灏忔瘺姣涢洦',53:'涓瘺姣涢洦',55:'澶ф瘺姣涢洦',
+        56:'鍐绘瘺姣涢洦',57:'閲嶅喕姣涙瘺闆?,
+        61:'灏忛洦',63:'涓洦',65:'澶ч洦',
+        66:'鍐婚洦',67:'閲嶅喕闆?,
+        71:'灏忛洩',73:'涓洩',75:'澶ч洩',
+        77:'闆矑',
+        80:'灏忛樀闆?,81:'涓樀闆?,82:'寮洪樀闆?,
+        85:'灏忛樀闆?,86:'澶ч樀闆?,
+        95:'闆锋毚',96:'闆锋毚+灏忓啺闆?,99:'闆锋毚+澶у啺闆?
     };
-    return m[code] !== undefined ? m[code] : '未知';
+    return m[code] !== undefined ? m[code] : '鏈煡';
 }
 
 // ============================================================
-// 日期选择栏
-// ============================================================
+// 鏃ユ湡閫夋嫨鏍?// ============================================================
 function initDateBar() {
     var bar = document.getElementById('dateBar');
     forecastDays = [];
@@ -206,11 +204,11 @@ function initDateBar() {
         var btn = document.createElement('button');
         btn.className = 'date-btn' + (j === 0 ? ' active' : '');
         btn.dataset.day = j;
-        var dayNames = ['周日','周一','周二','周三','周四','周五','周六'];
-        var dayName = j === 0 ? '今天' : (j === 1 ? '明天' : dayNames[forecastDays[j].getDay()]);
+        var dayNames = ['鍛ㄦ棩','鍛ㄤ竴','鍛ㄤ簩','鍛ㄤ笁','鍛ㄥ洓','鍛ㄤ簲','鍛ㄥ叚'];
+        var dayName = j === 0 ? '浠婂ぉ' : (j === 1 ? '鏄庡ぉ' : dayNames[forecastDays[j].getDay()]);
         btn.innerHTML = '<span class="day-name">' + dayName + '</span>' +
             '<span class="day-num">' + forecastDays[j].getDate() + '</span>' +
-            '<span class="month">' + (forecastDays[j].getMonth()+1) + '月</span>';
+            '<span class="month">' + (forecastDays[j].getMonth()+1) + '鏈?/span>';
         btn.onclick = (function(idx) { return function() { selectDay(idx); }; })(j);
         bar.appendChild(btn);
     }
@@ -222,12 +220,12 @@ function selectDay(idx) {
         b.classList.toggle('active', i === idx);
     });
     var badge = document.getElementById('todayBadge');
-    badge.textContent = idx === 0 ? '今日' : (idx === 1 ? '明日' : (idx + 1) + '天后');
+    badge.textContent = idx === 0 ? '浠婃棩' : (idx === 1 ? '鏄庢棩' : (idx + 1) + '澶╁悗');
     updateDisplay();
 }
 
 // ============================================================
-// 地图
+// 鍦板浘
 // ============================================================
 async function initMap() {
     chart = echarts.init(document.getElementById('china-map'));
@@ -236,7 +234,7 @@ async function initMap() {
         fetch('https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json')
             .then(function(r) { return r.json(); })
             .then(function(j) { echarts.registerMap('china', j); })
-            .catch(function(e) { console.error('中国地图加载失败:', e); }),
+            .catch(function(e) { console.error('涓浗鍦板浘鍔犺浇澶辫触:', e); }),
         fetch('https://geo.datav.aliyun.com/areas_v3/bound/world.json')
             .then(function(r) { return r.json(); })
             .then(function(j) { echarts.registerMap('world', j); })
@@ -284,11 +282,11 @@ async function initMap() {
                 var d = params.data;
                 return '<div style="font-weight:600;font-size:15px;margin-bottom:6px">' + d.name + '</div>' +
                     '<div style="display:flex;gap:12px;align-items:baseline">' +
-                    '<span style="font-size:24px;font-weight:700;color:#e74c3c">' + d.tempMax + '°</span>' +
+                    '<span style="font-size:24px;font-weight:700;color:#e74c3c">' + d.tempMax + '掳</span>' +
                     '<span style="color:#888">/</span>' +
-                    '<span style="font-size:18px;color:#3498db">' + d.tempMin + '°C</span></div>' +
+                    '<span style="font-size:18px;color:#3498db">' + d.tempMin + '掳C</span></div>' +
                     '<div style="margin-top:4px;font-size:12px;color:#777">' +
-                    d.condition + ' · 降水' + d.precip + 'mm · ' + d.wind + 'm/s</div>';
+                    d.condition + ' 路 闄嶆按' + d.precip + 'mm 路 ' + d.wind + 'm/s</div>';
             }
         }
     });
@@ -298,59 +296,151 @@ async function initMap() {
 }
 
 // ============================================================
-// 从服务器获取天气数据
+// 鍩庡競鍒楄〃锛堜笌 server.js 淇濇寔涓€鑷达級
 // ============================================================
+var CITIES = [
+    {name:'鍖椾含',lat:39.9042,lon:116.4074},{name:'澶╂触',lat:39.3434,lon:117.3616},
+    {name:'鐭冲搴?,lat:38.0428,lon:114.5149},{name:'澶師',lat:37.8706,lon:112.5489},
+    {name:'鍛煎拰娴╃壒',lat:40.8424,lon:111.7492},{name:'澶у悓',lat:40.0765,lon:113.2991},
+    {name:'鎵垮痉',lat:40.9513,lon:117.9630},{name:'娌堥槼',lat:41.8057,lon:123.4328},
+    {name:'澶ц繛',lat:38.9140,lon:121.6147},{name:'涓逛笢',lat:40.1290,lon:124.3944},
+    {name:'闀挎槬',lat:43.8171,lon:125.3235},{name:'鍚夋灄',lat:43.8377,lon:126.5494},
+    {name:'鍝堝皵婊?,lat:45.8038,lon:126.5340},{name:'榻愰綈鍝堝皵',lat:47.3543,lon:123.9180},
+    {name:'鐗′腹姹?,lat:44.5512,lon:129.6329},{name:'婕犳渤',lat:52.9727,lon:122.5386},
+    {name:'缁ヨ姮娌?,lat:44.4116,lon:131.1593},{name:'涓婃捣',lat:31.2304,lon:121.4737},
+    {name:'鍗椾含',lat:32.0603,lon:118.7969},{name:'鑻忓窞',lat:31.2989,lon:120.5853},
+    {name:'鎵窞',lat:32.3932,lon:119.4126},{name:'鏃犻敗',lat:31.4912,lon:120.3119},
+    {name:'甯稿窞',lat:31.7728,lon:119.9461},{name:'寰愬窞',lat:34.2044,lon:117.2857},
+    {name:'鍗楅€?,lat:31.9807,lon:120.8942},{name:'杩炰簯娓?,lat:34.5967,lon:119.2216},
+    {name:'鐩愬煄',lat:33.3477,lon:120.1630},{name:'鏉窞',lat:30.2741,lon:120.1551},
+    {name:'瀹佹尝',lat:29.8683,lon:121.5440},{name:'娓╁窞',lat:28.0006,lon:120.6994},
+    {name:'缁嶅叴',lat:30.0302,lon:120.5801},{name:'鍢夊叴',lat:30.7522,lon:120.7551},
+    {name:'閲戝崕',lat:29.0789,lon:119.6478},{name:'鍙板窞',lat:28.6565,lon:121.4209},
+    {name:'鑸熷北',lat:29.9853,lon:122.1071},{name:'鍗冨矝婀?,lat:29.6087,lon:119.0266},
+    {name:'榛勫北',lat:29.7147,lon:118.3376},{name:'鍚堣偉',lat:31.8206,lon:117.2272},
+    {name:'鑺滄箹',lat:31.3529,lon:118.4339},{name:'瀹夊簡',lat:30.5439,lon:117.0631},
+    {name:'铓屽煚',lat:32.9169,lon:117.3888},{name:'绂忓窞',lat:26.0745,lon:119.2965},
+    {name:'鍘﹂棬',lat:24.4798,lon:118.0894},{name:'娉夊窞',lat:24.8741,lon:118.6758},
+    {name:'婕冲窞',lat:24.5093,lon:117.6470},{name:'骞虫江',lat:25.4977,lon:119.7893},
+    {name:'姝﹀し灞?,lat:27.7541,lon:117.9419},{name:'鍗楁槍',lat:28.6829,lon:115.8579},
+    {name:'璧ｅ窞',lat:25.8289,lon:114.9332},{name:'涔濇睙',lat:29.7050,lon:116.0018},
+    {name:'鏅痉闀?,lat:29.2688,lon:117.1786},{name:'搴愬北',lat:29.5296,lon:115.9629},
+    {name:'娴庡崡',lat:36.6512,lon:117.1205},{name:'闈掑矝',lat:36.0671,lon:120.3826},
+    {name:'鐑熷彴',lat:37.4639,lon:121.4479},{name:'濞佹捣',lat:37.5133,lon:122.1205},
+    {name:'娼嶅潑',lat:36.7068,lon:119.1619},{name:'娣勫崥',lat:36.8132,lon:118.0548},
+    {name:'涓存矀',lat:35.1041,lon:118.3566},{name:'娴庡畞',lat:35.4147,lon:116.5871},
+    {name:'娉板畨',lat:36.1949,lon:117.0892},{name:'姝︽眽',lat:30.5928,lon:114.3055},
+    {name:'瑗勯槼',lat:32.0091,lon:112.1226},{name:'瀹滄槍',lat:30.6918,lon:111.2868},
+    {name:'鎭╂柦',lat:30.2722,lon:109.4881},{name:'绁炲啘鏋?,lat:31.7446,lon:110.6758},
+    {name:'闀挎矙',lat:28.2282,lon:112.9388},{name:'寮犲鐣?,lat:29.1170,lon:110.4792},
+    {name:'宀抽槼',lat:29.3570,lon:113.1286},{name:'琛￠槼',lat:26.8930,lon:112.5719},
+    {name:'鏍床',lat:27.8407,lon:113.1340},{name:'鍑ゅ嚢鍙ゅ煄',lat:27.9476,lon:109.5997},
+    {name:'閮戝窞',lat:34.7466,lon:113.6253},{name:'娲涢槼',lat:34.6197,lon:112.4540},
+    {name:'寮€灏?,lat:34.7971,lon:114.3074},{name:'鍗楅槼',lat:33.0004,lon:112.5283},
+    {name:'瀹夐槼',lat:36.0976,lon:114.3932},{name:'骞垮窞',lat:23.1291,lon:113.2644},
+    {name:'娣卞湷',lat:22.5431,lon:114.0579},{name:'涓滆帪',lat:23.0430,lon:113.7633},
+    {name:'浣涘北',lat:23.0218,lon:113.1220},{name:'鐝犳捣',lat:22.2711,lon:113.5767},
+    {name:'涓北',lat:22.5176,lon:113.3926},{name:'姹曞ご',lat:23.3541,lon:116.6820},
+    {name:'婀涙睙',lat:21.2707,lon:110.3594},{name:'鎯犲窞',lat:23.1115,lon:114.4152},
+    {name:'姹熼棬',lat:22.5789,lon:113.0815},{name:'娼窞',lat:23.6567,lon:116.6223},
+    {name:'娓呰繙',lat:23.6820,lon:113.0510},{name:'闊跺叧',lat:24.8108,lon:113.5974},
+    {name:'鑲囧簡',lat:23.0469,lon:112.4654},{name:'闃虫睙',lat:21.8579,lon:111.9825},
+    {name:'鍗楀畞',lat:22.8170,lon:108.3665},{name:'妗傛灄',lat:25.2736,lon:110.2900},
+    {name:'鏌冲窞',lat:24.3263,lon:109.4286},{name:'鍖楁捣',lat:21.4734,lon:109.1192},
+    {name:'闃插煄娓?,lat:21.6175,lon:108.3540},{name:'鐧捐壊',lat:23.9027,lon:106.6181},
+    {name:'姊у窞',lat:23.4769,lon:111.2791},{name:'宕囧乏',lat:22.4040,lon:107.3646},
+    {name:'璐哄窞',lat:24.4034,lon:111.5669},{name:'娌虫睜',lat:24.6928,lon:108.0853},
+    {name:'娴峰彛',lat:20.0174,lon:110.3492},{name:'涓変簹',lat:18.2528,lon:109.5119},
+    {name:'涓夋矙',lat:16.8331,lon:112.3333},{name:'鏂囨槍',lat:19.5431,lon:110.7542},
+    {name:'涓囧畞',lat:18.7959,lon:110.3890},{name:'鍎嬪窞',lat:19.5174,lon:109.5809},
+    {name:'闄垫按',lat:18.5076,lon:110.0343},{name:'涔愪笢',lat:18.7499,lon:109.1739},
+    {name:'閲嶅簡',lat:29.4316,lon:106.9123},{name:'鎴愰兘',lat:30.5728,lon:104.0668},
+    {name:'缁甸槼',lat:31.4675,lon:104.6796},{name:'瀹滃',lat:28.7518,lon:104.6417},
+    {name:'娉稿窞',lat:28.8717,lon:105.4423},{name:'涔愬北',lat:29.5521,lon:103.7657},
+    {name:'鐪夊北',lat:30.0493,lon:103.8484},{name:'涔濆娌?,lat:33.2549,lon:103.9125},
+    {name:'绋诲煄',lat:28.9068,lon:100.2971},{name:'搴峰畾',lat:30.0489,lon:101.9649},
+    {name:'瑗挎槍',lat:27.8817,lon:102.2637},{name:'璐甸槼',lat:26.6470,lon:106.6302},
+    {name:'閬典箟',lat:27.7256,lon:106.9272},{name:'瀹夐『',lat:26.2456,lon:105.9475},
+    {name:'榛斾笢鍗?,lat:26.5835,lon:107.9827},{name:'鏄嗘槑',lat:25.0406,lon:102.7129},
+    {name:'澶х悊',lat:25.6065,lon:100.2676},{name:'涓芥睙',lat:26.8721,lon:100.2288},
+    {name:'瑗垮弻鐗堢撼',lat:22.0076,lon:100.7975},{name:'棣欐牸閲屾媺',lat:27.8190,lon:99.7063},
+    {name:'鑵惧啿',lat:25.0217,lon:98.4887},{name:'绾㈡渤',lat:23.3639,lon:103.3745},
+    {name:'鏄€?,lat:27.3431,lon:103.7172},{name:'鎷夎惃',lat:29.6500,lon:91.1000},
+    {name:'鏋楄姖',lat:29.6486,lon:94.3624},{name:'鏃ュ杸鍒?,lat:29.2678,lon:88.8848},
+    {name:'鏄岄兘',lat:31.1369,lon:97.1785},{name:'閭ｆ洸',lat:31.4766,lon:92.0517},
+    {name:'闃块噷',lat:32.5000,lon:80.1000},{name:'瑗垮畨',lat:34.3416,lon:108.9398},
+    {name:'瀹濋浮',lat:34.3618,lon:107.2372},{name:'寤跺畨',lat:36.5853,lon:109.4897},
+    {name:'姒嗘灄',lat:38.2852,lon:109.7348},{name:'姹変腑',lat:33.0671,lon:107.0230},
+    {name:'鍗庡北',lat:34.4838,lon:110.0925},{name:'鍏板窞',lat:36.0611,lon:103.8343},
+    {name:'澶╂按',lat:34.5809,lon:105.7244},{name:'寮犳帠',lat:38.9259,lon:100.4491},
+    {name:'鍢夊唱鍏?,lat:39.7726,lon:98.2891},{name:'鏁︾厡',lat:40.1420,lon:94.6618},
+    {name:'閰掓硥',lat:39.7326,lon:94.4943},{name:'閲戞槍',lat:38.5205,lon:102.1882},
+    {name:'鐢樺崡',lat:34.9833,lon:102.9110},{name:'瑗垮畞',lat:36.6171,lon:101.7782},
+    {name:'闈掓捣婀?,lat:36.9569,lon:100.1766},{name:'鏍煎皵鏈?,lat:36.4064,lon:94.9043},
+    {name:'閾跺窛',lat:38.4872,lon:106.2309},{name:'涓崼',lat:37.5003,lon:105.1893},
+    {name:'鐭冲槾灞?,lat:38.9841,lon:106.3839},{name:'涔岄瞾鏈ㄩ綈',lat:43.8256,lon:87.6168},
+    {name:'鍏嬫媺鐜涗緷',lat:45.5798,lon:84.8892},{name:'搴撳皵鍕?,lat:41.7259,lon:86.1746},
+    {name:'鍠€浠€',lat:39.4677,lon:75.9894},{name:'鍝堝瘑',lat:42.8181,lon:93.5153},
+    {name:'浼婄妬',lat:43.9219,lon:81.3240},{name:'甯冨皵娲?,lat:47.6986,lon:86.8694},
+    {name:'闃垮嫆娉?,lat:47.8447,lon:88.1396},{name:'璧涢噷鏈ㄦ箹',lat:44.5487,lon:81.1195},
+    {name:'鍚愰瞾鐣?,lat:42.9513,lon:89.1895},{name:'鍜岀敯',lat:37.1105,lon:79.9250},
+    {name:'闃垮厠鑻?,lat:41.1673,lon:80.2601}
+];
+
+// ============================================================
+// 鐩存帴浠庢祻瑙堝櫒鑾峰彇澶╂皵鏁版嵁锛堢粫杩囨湇鍔″櫒浠ｇ悊锛?// ============================================================
 async function loadWeatherFromServer() {
     document.getElementById('loading').classList.remove('hidden');
     document.getElementById('progressFill').style.width = '0%';
-    document.getElementById('progressText').textContent = '正在连接服务器…';
+    document.getElementById('progressText').textContent = '姝ｅ湪鑾峰彇澶╂皵鏁版嵁鈥?;
 
-    // 尝试从本地服务器获取
-    var sources = [
-        { url: '/api/weather', desc: '本地服务器' },
-        { url: '/weather.json', desc: '本地服务器' }
-    ];
+    var BATCH = 20;
+    var data = {};
+    var total = CITIES.length;
 
-    var data = null;
-    var sourceUsed = null;
+    for (var i = 0; i < total; i += BATCH) {
+        var batch = CITIES.slice(i, i + BATCH);
+        var pct = Math.round(((i + BATCH) / total) * 100);
+        document.getElementById('progressFill').style.width = pct + '%';
+        document.getElementById('progressText').textContent =
+            '鍔犺浇涓?' + (i + batch.length) + '/' + total + ' 涓煄甯傗€?;
 
-    for (var i = 0; i < sources.length; i++) {
-        try {
-            document.getElementById('progressText').textContent = '尝试 ' + sources[i].desc + '…';
-            var resp = await fetch(sources[i].url);
-            if (resp.ok) {
-                data = await resp.json();
-                sourceUsed = sources[i].desc;
-                break;
-            }
-        } catch (e) {
-            console.warn(sources[i].url, '不可用:', e);
-        }
+        var promises = batch.map(function(city) {
+            var params = [
+                'daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max',
+                'current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m',
+                'timezone=Asia%2FShanghai',
+                'forecast_days=16'
+            ].join('&');
+            var url = 'https://api.open-meteo.com/v1/forecast?latitude=' +
+                city.lat + '&longitude=' + city.lon + '&' + params;
+            return fetch(url)
+                .then(function(r) { return r.json(); })
+                .then(function(j) { return { city: city, data: j }; })
+                .catch(function() { return null; });
+        });
+
+        var results = await Promise.all(promises);
+        results.forEach(function(r) {
+            if (r) data[r.city.name] = {
+                latitude: r.city.lat, longitude: r.city.lon,
+                daily: r.data.daily, current: r.data.current
+            };
+        });
     }
 
-    if (data) {
-        allData = data;
-        document.getElementById('progressFill').style.width = '100%';
-        document.getElementById('progressText').textContent = '数据加载完成！';
-        var count = Object.keys(data).length;
-        document.getElementById('subtitleText').textContent =
-            '已加载 ' + count + ' 个城市 · 未来16天预报 · ' + sourceUsed;
-        document.getElementById('loading').classList.add('hidden');
-        updateDisplay();
-    } else {
-        // 服务器不可用，提示用户
-        document.getElementById('loadingTitle').textContent = '无法连接服务器';
-        document.getElementById('loadingSub').innerHTML =
-            '请确保已启动后端服务：<br><code style="background:#f0f0f0;padding:4px 8px;border-radius:4px">cd weather-map-app && node server.js</code><br><br>' +
-            '<span style="font-size:11px;color:#aaa">或双击 index.html 直接在浏览器打开（速度较慢）</span>';
-        document.getElementById('progressText').textContent = '服务器未运行';
-        document.getElementById('progressFill').style.width = '0%';
-    }
+    allData = data;
+    var count = Object.keys(data).length;
+    document.getElementById('progressFill').style.width = '100%';
+    document.getElementById('progressText').textContent = '鍔犺浇瀹屾垚锛?;
+    document.getElementById('subtitleText').textContent =
+        '宸插姞杞?' + count + ' 涓煄甯?路 鏈潵16澶╅鎶?路 Open-Meteo';
+    document.getElementById('loading').classList.add('hidden');
+    updateDisplay();
 }
 
 // ============================================================
-// 展示层
-// ============================================================
+// 灞曠ず灞?// ============================================================
 function updateDisplay() {
     updateMap();
     updateCityList();
@@ -401,7 +491,7 @@ function updateCityList() {
     }
 
     if (!list.length) {
-        container.innerHTML = '<div class="empty-tip">暂无数据</div>';
+        container.innerHTML = '<div class="empty-tip">鏆傛棤鏁版嵁</div>';
         return;
     }
 
@@ -411,12 +501,12 @@ function updateCityList() {
         return '<div class="city-item" onclick="focusCity(\'' + city.name + '\')">' +
             '<div class="top">' +
             '<span class="city-name">' + city.name + '</span>' +
-            '<span class="temp-range" style="color:' + city.color + '">' + city.tempMax + '° / ' + city.tempMin + '°</span>' +
+            '<span class="temp-range" style="color:' + city.color + '">' + city.tempMax + '掳 / ' + city.tempMin + '掳</span>' +
             '</div>' +
             '<div class="bottom">' +
             '<span class="weather-icon">' + getWeatherIcon(city.cond) + '</span>' +
             '<span class="condition">' + city.cond + '</span>' +
-            '<span style="margin-left:auto">🌧️' + city.precip + 'mm</span>' +
+            '<span style="margin-left:auto">馃導锔? + city.precip + 'mm</span>' +
             '</div></div>';
     }).join('');
 }
@@ -435,7 +525,7 @@ function focusCity(name) {
 }
 
 // ============================================================
-// 启动
+// 鍚姩
 // ============================================================
 window.onload = async function() {
     initDateBar();

@@ -1,14 +1,12 @@
-# 全国天气地图 🌦️
-
-基于 Open-Meteo API 的中国城市天气预报，支持未来 16 天逐日预报。
-
+# 鍏ㄥ浗澶╂皵鍦板浘 馃對锔?
+鍩轰簬 Open-Meteo API 鐨勪腑鍥藉煄甯傚ぉ姘旈鎶ワ紝鏀寔鏈潵 16 澶╅€愭棩棰勬姤銆?
 ---
 
-## 使用方式
+## 浣跨敤鏂瑰紡
 
-### 方式一：本地服务器（推荐，速度快）
+### 鏂瑰紡涓€锛氭湰鍦版湇鍔″櫒锛堟帹鑽愶紝閫熷害蹇級
 
-**需要先安装 Node.js（18+）**
+**闇€瑕佸厛瀹夎 Node.js锛?8+锛?*
 
 ```bash
 cd D:\Desktop\weather-map-app
@@ -16,81 +14,69 @@ npm install
 node server.js
 ```
 
-然后浏览器打开 http://localhost:3000
+鐒跺悗娴忚鍣ㄦ墦寮€ http://localhost:3000
 
-**效果：**
-- 首次加载约 30-60 秒（服务器并发请求 155 个城市）
-- 之后 30 分钟内再次访问**秒开**（走服务端缓存）
-- 其他人访问 `http://你的IP:3000` 即可
-
----
-
-### 方式二：直接双击打开（备用）
-
-直接双击 `index.html`，但会有以下问题：
-- 加载极慢（浏览器并发限制，155 个城市串行请求）
-- 部分浏览器可能拦截（跨域限制）
+**鏁堟灉锛?*
+- 棣栨鍔犺浇绾?30-60 绉掞紙鏈嶅姟鍣ㄥ苟鍙戣姹?155 涓煄甯傦級
+- 涔嬪悗 30 鍒嗛挓鍐呭啀娆¤闂?*绉掑紑**锛堣蛋鏈嶅姟绔紦瀛橈級
+- 鍏朵粬浜鸿闂?`http://浣犵殑IP:3000` 鍗冲彲
 
 ---
 
-## 功能说明
+### 鏂瑰紡浜岋細鐩存帴鍙屽嚮鎵撳紑锛堝鐢級
 
-| 功能 | 说明 |
+鐩存帴鍙屽嚮 `index.html`锛屼絾浼氭湁浠ヤ笅闂锛?- 鍔犺浇鏋佹參锛堟祻瑙堝櫒骞跺彂闄愬埗锛?55 涓煄甯備覆琛岃姹傦級
+- 閮ㄥ垎娴忚鍣ㄥ彲鑳芥嫤鎴紙璺ㄥ煙闄愬埗锛?
+---
+
+## 鍔熻兘璇存槑
+
+| 鍔熻兘 | 璇存槑 |
 |------|------|
-| 📅 日期切换 | 顶部横条支持切换今天 + 未来 15 天 |
-| 🗺️ 地图缩放 | 鼠标滚轮缩放，拖拽移动 |
-| 📋 城市列表 | 按最高温度排序，点击可定位到地图 |
-| 🌡️ 温度显示 | 地图点显示最高温/最低温 |
-| ⏱️ 缓存 | 服务器端 30 分钟缓存 |
+| 馃搮 鏃ユ湡鍒囨崲 | 椤堕儴妯潯鏀寔鍒囨崲浠婂ぉ + 鏈潵 15 澶?|
+| 馃椇锔?鍦板浘缂╂斁 | 榧犳爣婊氳疆缂╂斁锛屾嫋鎷界Щ鍔?|
+| 馃搵 鍩庡競鍒楄〃 | 鎸夋渶楂樻俯搴︽帓搴忥紝鐐瑰嚮鍙畾浣嶅埌鍦板浘 |
+| 馃尅锔?娓╁害鏄剧ず | 鍦板浘鐐规樉绀烘渶楂樻俯/鏈€浣庢俯 |
+| 鈴憋笍 缂撳瓨 | 鏈嶅姟鍣ㄧ 30 鍒嗛挓缂撳瓨 |
 
 ---
 
-## 部署到云端（让所有人访问）
+## 閮ㄧ讲鍒颁簯绔紙璁╂墍鏈変汉璁块棶锛?
+### 鏂规涓€锛歊ailway锛堝厤璐癸紝鎺ㄨ崘锛?
+1. 涓婁紶 `server.js`銆乣index.html`銆乣package.json` 鍒?GitHub
+2. 鍦?[Railway.app](https://railway.app) 鏂板缓椤圭洰锛岃繛鎺?GitHub
+3. Railway 鑷姩璇嗗埆 Node.js 骞堕儴缃?4. 鑾峰緱涓€涓叕缃?URL锛堝 `xxx.railway.app`锛?
+### 鏂规浜岋細Vercel + Serverless Functions
 
-### 方案一：Railway（免费，推荐）
-
-1. 上传 `server.js`、`index.html`、`package.json` 到 GitHub
-2. 在 [Railway.app](https://railway.app) 新建项目，连接 GitHub
-3. Railway 自动识别 Node.js 并部署
-4. 获得一个公网 URL（如 `xxx.railway.app`）
-
-### 方案二：Vercel + Serverless Functions
-
-将服务器改写为 Vercel Serverless Function，或使用 Next.js 框架。
-
-### 方案三：腾讯云/阿里云 ECS
+灏嗘湇鍔″櫒鏀瑰啓涓?Vercel Serverless Function锛屾垨浣跨敤 Next.js 妗嗘灦銆?
+### 鏂规涓夛細鑵捐浜?闃块噷浜?ECS
 
 ```bash
-ssh 到服务器
-yum install nodejs -y   # 或用 nvm
-git clone 你的仓库
+ssh 鍒版湇鍔″櫒
+yum install nodejs -y   # 鎴栫敤 nvm
+git clone 浣犵殑浠撳簱
 npm install
 PORT=80 node server.js
 ```
 
-配合 Nginx 反向代理 + HTTPS。
-
+閰嶅悎 Nginx 鍙嶅悜浠ｇ悊 + HTTPS銆?
 ---
 
-## 技术说明
-
-| 项目 | 说明 |
+## 鎶€鏈鏄?
+| 椤圭洰 | 璇存槑 |
 |------|------|
-| 前端 | 原生 HTML/JS + ECharts 5 |
-| 后端 | Node.js（无框架） |
-| 地图数据 | 阿里云 DataV GeoJSON |
-| 天气数据 | Open-Meteo API（免费，无需 Key） |
-| 数据维度 | 温度、天气状况、降水量、风速 |
-| 预报天数 | 16 天（Open-Meteo 免费版限制） |
+| 鍓嶇 | 鍘熺敓 HTML/JS + ECharts 5 |
+| 鍚庣 | Node.js锛堟棤妗嗘灦锛?|
+| 鍦板浘鏁版嵁 | 闃块噷浜?DataV GeoJSON |
+| 澶╂皵鏁版嵁 | Open-Meteo API锛堝厤璐癸紝鏃犻渶 Key锛?|
+| 鏁版嵁缁村害 | 娓╁害銆佸ぉ姘旂姸鍐点€侀檷姘撮噺銆侀閫?|
+| 棰勬姤澶╂暟 | 16 澶╋紙Open-Meteo 鍏嶈垂鐗堥檺鍒讹級 |
 
 ---
 
-## 目录结构
+## 鐩綍缁撴瀯
 
 ```
 weather-map-app/
-├── index.html      # 前端页面（地图 + UI）
-├── server.js       # 后端服务器（数据聚合 + 缓存）
-├── package.json    # Node.js 依赖
-└── README.md       # 本文件
-```
+鈹溾攢鈹€ index.html      # 鍓嶇椤甸潰锛堝湴鍥?+ UI锛?鈹溾攢鈹€ server.js       # 鍚庣鏈嶅姟鍣紙鏁版嵁鑱氬悎 + 缂撳瓨锛?鈹溾攢鈹€ package.json    # Node.js 渚濊禆
+鈹斺攢鈹€ README.md       # 鏈枃浠?```
